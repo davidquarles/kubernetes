@@ -69,10 +69,10 @@ const KubeMarkMasqChain utiliptables.Chain = "KUBE-MARK-MASQ"
 
 // the mark we apply to traffic needing SNAT
 // TODO(thockin): Remove this for v1.3 or v1.4.
-const oldIptablesMasqueradeMark = "0x4d415351"
+const oldIPTablesMasqueradeMark = "0x4d415351"
 
-// IptablesVersioner can query the current iptables version.
-type IptablesVersioner interface {
+// IPTablesVersioner can query the current iptables version.
+type IPTablesVersioner interface {
 	// returns "X.Y.Z"
 	GetVersion() (string, error)
 }
@@ -83,12 +83,12 @@ type KernelCompatTester interface {
 	IsCompatible() error
 }
 
-// CanUseIptablesProxier returns true if we should use the iptables Proxier
+// CanUseIPTablesProxier returns true if we should use the iptables Proxier
 // instead of the "classic" userspace Proxier.  This is determined by checking
 // the iptables version and for the existence of kernel features. It may return
 // an error if it fails to get the iptables version without error, in which
 // case it will also return false.
-func CanUseIptablesProxier(iptver IptablesVersioner, kcompat KernelCompatTester) (bool, error) {
+func CanUseIPTablesProxier(iptver IPTablesVersioner, kcompat KernelCompatTester) (bool, error) {
 	minVersion, err := semver.NewVersion(iptablesMinVersion)
 	if err != nil {
 		return false, err
@@ -124,7 +124,7 @@ func (lkct LinuxKernelCompatTester) IsCompatible() error {
 }
 
 const sysctlRouteLocalnet = "net/ipv4/conf/all/route_localnet"
-const sysctlBridgeCallIptables = "net/bridge/bridge-nf-call-iptables"
+const sysctlBridgeCallIPTables = "net/bridge/bridge-nf-call-iptables"
 
 // internal struct for string service information
 type serviceInfo struct {
@@ -198,7 +198,7 @@ func NewProxier(ipt utiliptables.Interface, exec utilexec.Interface, syncPeriod 
 	// Proxy needs br_netfilter and bridge-nf-call-iptables=1 when containers
 	// are connected to a Linux bridge (but not SDN bridges).  Until most
 	// plugins handle this, log when config is missing
-	if val, err := utilsysctl.GetSysctl(sysctlBridgeCallIptables); err == nil && val != 1 {
+	if val, err := utilsysctl.GetSysctl(sysctlBridgeCallIPTables); err == nil && val != 1 {
 		glog.Infof("missing br-netfilter module or unset sysctl br-nf-call-iptables; proxy may not work as intended")
 	}
 
@@ -311,7 +311,7 @@ func CleanupLeftovers(ipt utiliptables.Interface) (encounteredError bool) {
 	// TODO(thockin): Remove this for v1.3 or v1.4.
 	args = []string{
 		"-m", "comment", "--comment", "kubernetes service traffic requiring SNAT",
-		"-m", "mark", "--mark", oldIptablesMasqueradeMark,
+		"-m", "mark", "--mark", oldIPTablesMasqueradeMark,
 		"-j", "MASQUERADE",
 	}
 	if err := ipt.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPostrouting, args...); err != nil {
@@ -555,7 +555,7 @@ func flattenValidEndpoints(endpoints []hostPortPair) []string {
 // servicePortChainName takes the ServicePortName for a service and
 // returns the associated iptables chain.  This is computed by hashing (sha256)
 // then encoding to base32 and truncating with the prefix "KUBE-SVC-".  We do
-// this because Iptables Chain Names must be <= 28 chars long, and the longer
+// this because IPTables Chain Names must be <= 28 chars long, and the longer
 // they are the harder they are to read.
 func servicePortChainName(s proxy.ServicePortName, protocol string) utiliptables.Chain {
 	hash := sha256.Sum256([]byte(s.String() + protocol))
@@ -1037,7 +1037,7 @@ func (proxier *Proxier) syncProxyRules() {
 	// TODO(thockin): Remove this for v1.3 or v1.4.
 	args := []string{
 		"-m", "comment", "--comment", "kubernetes service traffic requiring SNAT",
-		"-m", "mark", "--mark", oldIptablesMasqueradeMark,
+		"-m", "mark", "--mark", oldIPTablesMasqueradeMark,
 		"-j", "MASQUERADE",
 	}
 	if err := proxier.iptables.DeleteRule(utiliptables.TableNAT, utiliptables.ChainPostrouting, args...); err != nil {

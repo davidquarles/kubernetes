@@ -52,7 +52,7 @@ const (
 	BridgeName        = "cbr0"
 	DefaultCNIDir     = "/opt/cni/bin"
 
-	sysctlBridgeCallIptables = "net/bridge/bridge-nf-call-iptables"
+	sysctlBridgeCallIPTables = "net/bridge/bridge-nf-call-iptables"
 )
 
 type kubenetNetworkPlugin struct {
@@ -115,9 +115,9 @@ func (plugin *kubenetNetworkPlugin) Init(host network.Host, hairpinMode componen
 	// was built-in, we simply ignore the error here. A better thing to do is
 	// to check the kernel version in the future.
 	plugin.execer.Command("modprobe", "br-netfilter").CombinedOutput()
-	err := utilsysctl.SetSysctl(sysctlBridgeCallIptables, 1)
+	err := utilsysctl.SetSysctl(sysctlBridgeCallIPTables, 1)
 	if err != nil {
-		glog.Warningf("can't set sysctl %s: %v", sysctlBridgeCallIptables, err)
+		glog.Warningf("can't set sysctl %s: %v", sysctlBridgeCallIPTables, err)
 	}
 
 	plugin.loConfig, err = libcni.ConfFromBytes([]byte(`{

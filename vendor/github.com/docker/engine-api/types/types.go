@@ -222,7 +222,7 @@ type Info struct {
 	CPUShares          bool
 	CPUSet             bool
 	IPv4Forwarding     bool
-	BridgeNfIptables   bool
+	BridgeNfIPTables   bool
 	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
 	Debug              bool
 	NFd                int
